@@ -1,0 +1,534 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+
+// --- Types ---
+interface PhoneData {
+  brand: string;
+  model: string;
+  release_date: string;
+  first_sale_date: string;
+  starting_price: string;
+  series_type: string;
+  year: string;
+  month: string;
+}
+
+interface BrandColors {
+  [key: string]: string;
+}
+
+// --- Constants ---
+const BRAND_COLORS: BrandColors = {
+  "Samsung": "#4b8df8",
+  "Huawei": "#ff3333",
+  "Xiaomi": "#ff8c00",
+  "vivo": "#4575fb",
+  "OPPO": "#05d58b",
+  "HONOR": "#b886ff"
+};
+
+const TYPE_TRANSLATION: { [key: string]: string } = {
+  "large_fold": "大折叠",
+  "small_fold": "小折叠"
+};
+
+const RAW_DATA: { [year: string]: { [month: string]: any[] } } = {
+  "2019": { "02": [{ "brand": "Samsung", "model": "Galaxy Fold", "release_date": "2019/2/21", "first_sale_date": "2019/11/8", "starting_price": "¥15,999", "series_type": "large_fold" }], "10": [{ "brand": "Huawei", "model": "Mate X", "release_date": "2019/10/23", "first_sale_date": "2019/11/15", "starting_price": "¥16,999", "series_type": "large_fold" }] },
+  "2020": { "02": [{ "brand": "Samsung", "model": "Z Flip", "release_date": "2020/2/11", "first_sale_date": "2020/2/20", "starting_price": "¥11,999", "series_type": "small_fold" }, { "brand": "Huawei", "model": "Mate Xs", "release_date": "2020/2/24", "first_sale_date": "2020/3/5", "starting_price": "¥16,999", "series_type": "large_fold" }], "07": [{ "brand": "Samsung", "model": "Z Flip 5G", "release_date": "2020/7/22", "first_sale_date": "2020/8/7", "starting_price": "¥12,499", "series_type": "small_fold" }], "09": [{ "brand": "Samsung", "model": "Z Fold2", "release_date": "2020/9/1", "first_sale_date": "2020/9/25", "starting_price": "¥16,999", "series_type": "large_fold" }] },
+  "2021": { "02": [{ "brand": "Huawei", "model": "Mate X2", "release_date": "2021/2/22", "first_sale_date": "2021/2/25", "starting_price": "¥17,999", "series_type": "large_fold" }], "03": [{ "brand": "Xiaomi", "model": "MIX Fold", "release_date": "2021/3/30", "first_sale_date": "2021/4/16", "starting_price": "¥9,999", "series_type": "large_fold" }], "08": [{ "brand": "Samsung", "model": "Z Flip3", "release_date": "2021/8/11", "first_sale_date": "2021/9/10", "starting_price": "¥7,599", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Fold3", "release_date": "2021/8/11", "first_sale_date": "2021/9/10", "starting_price": "¥14,999", "series_type": "large_fold" }], "12": [{ "brand": "Huawei", "model": "P50 Pocket", "release_date": "2021/12/23", "first_sale_date": "2021/12/23", "starting_price": "¥8,988", "series_type": "small_fold" }, { "brand": "OPPO", "model": "Find N", "release_date": "2021/12/15", "first_sale_date": "2021/12/23", "starting_price": "¥7,699", "series_type": "large_fold" }] },
+  "2022": { "01": [{ "brand": "HONOR", "model": "Magic V", "release_date": "2022/1/10", "first_sale_date": "2022/1/18", "starting_price": "¥9,999", "series_type": "large_fold" }], "04": [{ "brand": "Huawei", "model": "Mate Xs 2", "release_date": "2022/4/28", "first_sale_date": "2022/5/6", "starting_price": "¥9,999", "series_type": "large_fold" }, { "brand": "vivo", "model": "X Fold", "release_date": "2022/4/11", "first_sale_date": "2022/4/22", "starting_price": "¥8,999", "series_type": "large_fold" }], "08": [{ "brand": "Samsung", "model": "Z Flip4", "release_date": "2022/8/10", "first_sale_date": "2022/9/2", "starting_price": "¥7,499", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Fold4", "release_date": "2022/8/10", "first_sale_date": "2022/9/2", "starting_price": "¥12,999", "series_type": "large_fold" }, { "brand": "Xiaomi", "model": "MIX Fold 2", "release_date": "2022/8/11", "first_sale_date": "2022/8/16", "starting_price": "¥8,999", "series_type": "large_fold" }], "09": [{ "brand": "vivo", "model": "X Fold+", "release_date": "2022/9/26", "first_sale_date": "2022/9/29", "starting_price": "¥9,999", "series_type": "large_fold" }], "11": [{ "brand": "Huawei", "model": "Pocket S", "release_date": "2022/11/2", "first_sale_date": "2022/11/10", "starting_price": "¥5,988", "series_type": "small_fold" }, { "brand": "HONOR", "model": "Magic Vs", "release_date": "2022/11/23", "first_sale_date": "2022/12/2", "starting_price": "¥7,499", "series_type": "large_fold" }], "12": [{ "brand": "OPPO", "model": "Find N2 Flip", "release_date": "2022/12/15", "first_sale_date": "2022/12/30", "starting_price": "¥5,999", "series_type": "small_fold" }, { "brand": "OPPO", "model": "Find N2", "release_date": "2022/12/15", "first_sale_date": "2022/12/23", "starting_price": "¥7,999", "series_type": "large_fold" }] },
+  "2023": { "03": [{ "brand": "Huawei", "model": "Mate X3", "release_date": "2023/3/23", "first_sale_date": "2023/4/7", "starting_price": "¥12,999", "series_type": "large_fold" }], "04": [{ "brand": "vivo", "model": "X Flip", "release_date": "2023/4/20", "first_sale_date": "2023/4/28", "starting_price": "¥5,999", "series_type": "small_fold" }, { "brand": "vivo", "model": "X Fold2", "release_date": "2023/4/20", "first_sale_date": "2023/4/28", "starting_price": "¥8,999", "series_type": "large_fold" }], "07": [{ "brand": "Samsung", "model": "Z Flip5", "release_date": "2023/7/26", "first_sale_date": "2023/8/11", "starting_price": "¥7,499", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Fold5", "release_date": "2023/7/26", "first_sale_date": "2023/8/11", "starting_price": "¥12,999", "series_type": "large_fold" }, { "brand": "Xiaomi", "model": "MIX Fold 4", "release_date": "2023/7/19", "first_sale_date": "2023/7/23", "starting_price": "¥8,999", "series_type": "large_fold" }, { "brand": "HONOR", "model": "Magic V2", "release_date": "2023/7/12", "first_sale_date": "2023/7/20", "starting_price": "¥8,999", "series_type": "large_fold" }], "08": [{ "brand": "OPPO", "model": "Find N3 Flip", "release_date": "2023/8/29", "first_sale_date": "2023/9/8", "starting_price": "¥6,799", "series_type": "small_fold" }, { "brand": "Xiaomi", "model": "MIX Fold 3", "release_date": "2023/8/14", "first_sale_date": "2023/8/16", "starting_price": "¥8,999", "series_type": "large_fold" }], "09": [{ "brand": "Huawei", "model": "Mate X5", "release_date": "2023/9/8", "first_sale_date": "2023/9/8", "starting_price": "¥12,999", "series_type": "large_fold" }], "10": [{ "brand": "OPPO", "model": "Find N3", "release_date": "2023/10/19", "first_sale_date": "2023/10/27", "starting_price": "¥9,999", "series_type": "large_fold" }, { "brand": "HONOR", "model": "Magic Vs2", "release_date": "2023/10/12", "first_sale_date": "2023/10/17", "starting_price": "¥6,999", "series_type": "large_fold" }] },
+  "2024": { "02": [{ "brand": "Huawei", "model": "Pocket 2", "release_date": "2024/2/22", "first_sale_date": "2024/2/27", "starting_price": "¥7,499", "series_type": "small_fold" }], "03": [{ "brand": "vivo", "model": "X Fold3", "release_date": "2024/3/26", "first_sale_date": "2024/3/30", "starting_price": "¥6,999", "series_type": "large_fold" }], "07": [{ "brand": "Samsung", "model": "Z Flip6", "release_date": "2024/7/10", "first_sale_date": "2024/7/24", "starting_price": "¥7,999", "series_type": "small_fold" }, { "brand": "Xiaomi", "model": "MIX Flip", "release_date": "2024/7/19", "first_sale_date": "2024/7/23", "starting_price": "¥5,999", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Fold6", "release_date": "2024/7/10", "first_sale_date": "2024/7/24", "starting_price": "¥13,999", "series_type": "large_fold" }, { "brand": "HONOR", "model": "Magic V3", "release_date": "2024/7/12", "first_sale_date": "2024/7/19", "starting_price": "¥8,999", "series_type": "large_fold" }, { "brand": "HONOR", "model": "Magic Vs3", "release_date": "2024/7/12", "first_sale_date": "2024/7/19", "starting_price": "¥6,999", "series_type": "large_fold" }], "08": [{ "brand": "Huawei", "model": "Nova Flip", "release_date": "2024/8/5", "first_sale_date": "2024/8/9", "starting_price": "¥5,288", "series_type": "small_fold" }], "09": [{ "brand": "Huawei", "model": "Mate XT 非凡大师", "release_date": "2024/9/10", "first_sale_date": "2024/9/20", "starting_price": "¥19,999", "series_type": "large_fold" }], "11": [{ "brand": "Huawei", "model": "Mate X6", "release_date": "2024/11/26", "first_sale_date": "2024/12/6", "starting_price": "¥12,999", "series_type": "large_fold" }] },
+  "2025": { "02": [{ "brand": "OPPO", "model": "Find N5", "release_date": "2025/2/20", "first_sale_date": "2025/2/26", "starting_price": "¥8,999", "series_type": "large_fold" }], "03": [{ "brand": "Huawei", "model": "Pura X", "release_date": "2025/3/20", "first_sale_date": "2025/3/30", "starting_price": "¥7,499", "series_type": "small_fold" }], "06": [{ "brand": "Xiaomi", "model": "MIX Flip2", "release_date": "2025/6/26", "first_sale_date": "2025/6/26", "starting_price": "¥5,999", "series_type": "small_fold" }, { "brand": "vivo", "model": "X Fold5", "release_date": "2025/6/25", "first_sale_date": "2025/7/2", "starting_price": "¥6,999", "series_type": "large_fold" }], "07": [{ "brand": "Samsung", "model": "Z Flip7", "release_date": "2025/7/9", "first_sale_date": "2025/7/25", "starting_price": "¥7,999", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Flip7 FE", "release_date": "2025/7/9", "first_sale_date": "2024/7/25", "starting_price": "¥6,499", "series_type": "small_fold" }, { "brand": "Samsung", "model": "Z Fold7", "release_date": "2025/7/9", "first_sale_date": "2025/7/25", "starting_price": "¥13,999", "series_type": "large_fold" }, { "brand": "HONOR", "model": "Magic V5", "release_date": "2025/7/2", "first_sale_date": "2025/7/4", "starting_price": "¥8,999", "series_type": "large_fold" }], "09": [{ "brand": "Huawei", "model": "Mate XTs 非凡大师", "release_date": "2025/9/4", "first_sale_date": "2025/9/12", "starting_price": "¥17,999", "series_type": "large_fold" }], "11": [{ "brand": "Huawei", "model": "Mate X7", "release_date": "2025/11/25", "first_sale_date": "2025/12/5", "starting_price": "¥12,999", "series_type": "large_fold" }] },
+  "2026": { "02": [{ "brand": "OPPO", "model": "Find N6", "release_date": "2026/2/28", "first_sale_date": "2026/3/17", "starting_price": "¥9,999", "series_type": "large_fold" }], "03": [{ "brand": "HONOR", "model": "Magic V6", "release_date": "2026/3/10", "first_sale_date": "2026/3/13", "starting_price": "¥8,999", "series_type": "large_fold" }] }
+};
+
+const YEARS = ["2019", "2020", "2021", "2022", "2023", "2024", "2025", "2026"];
+
+// --- Helper Functions ---
+const getBaseData = (): PhoneData[] => {
+  const base: PhoneData[] = [];
+  for (const year in RAW_DATA) {
+    for (const month in RAW_DATA[year]) {
+      RAW_DATA[year][month].forEach(item => base.push({ year, month, ...item }));
+    }
+  }
+  return base.sort((a, b) => a.year.localeCompare(b.year) || a.month.localeCompare(b.month));
+};
+
+const TARGET_COUNT = 280;
+const PROCESSED_DATA = Array.from({ length: TARGET_COUNT }, (_, i) => {
+  const base = getBaseData();
+  const phone = base[i % base.length];
+  return {
+    ...phone,
+    scatterOffset: Math.pow(Math.random(), 1.5) * 200,
+    depthOpacity: (Math.random() * 0.4 + 0.1).toFixed(2),
+    id: `phone-${i}`
+  };
+});
+
+export default function App() {
+  const [activePhone, setActivePhone] = useState<PhoneData & { id: string } | null>(null);
+  const [activeFilterYear, setActiveFilterYear] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
+
+  const dialLayerRef = useRef<HTMLDivElement>(null);
+  const dataLayerRef = useRef<HTMLDivElement>(null);
+  const phoneElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const mousePosRef = useRef({ x: 0, y: 0 });
+  
+  const yearAngleRef = useRef(0);
+  const dataAngleRef = useRef(0);
+  const startMouseAngleRef = useRef(0);
+  const lastYearAngleRef = useRef(0);
+  const lastDataAngleRef = useRef(0);
+  const isDraggingOperationRef = useRef(false);
+
+  const autoRotateSpeed = 0.015;
+
+  // --- De-duplication Logic ---
+  const filteredUniqueModels = useMemo(() => {
+    if (!activeFilterYear) return [];
+    const seenModels = new Set();
+    const unique: typeof PROCESSED_DATA = [];
+    PROCESSED_DATA.forEach(p => {
+      if (p.year === activeFilterYear && !seenModels.has(p.model)) {
+        seenModels.add(p.model);
+        unique.push(p);
+      }
+    });
+    return unique;
+  }, [activeFilterYear]);
+
+  const uniqueModelIds = useMemo(() => new Set(filteredUniqueModels.map(p => p.id)), [filteredUniqueModels]);
+
+  // --- Animation Loop ---
+  useEffect(() => {
+    let animationFrameId: number;
+
+    const animate = () => {
+      if (!isHovering && !isDragging) {
+        yearAngleRef.current += autoRotateSpeed;
+        dataAngleRef.current = yearAngleRef.current * 3;
+      }
+
+      if (dialLayerRef.current) dialLayerRef.current.style.transform = `rotate(${yearAngleRef.current}deg)`;
+      if (dataLayerRef.current) dataLayerRef.current.style.transform = `rotate(${dataAngleRef.current}deg)`;
+      
+      // Update ray rotations and hover effects
+      const centerX = window.innerWidth * 1.15;
+      const centerY = window.innerHeight / 2;
+      const dialRadius = (window.innerWidth * 0.65) - 120;
+      const mouseX = mousePosRef.current.x;
+      const mouseY = mousePosRef.current.y;
+
+      PROCESSED_DATA.forEach((phone, index) => {
+        const el = phoneElementsRef.current[index];
+        if (!el) return;
+
+        const rayContainer = el.parentElement;
+        if (!rayContainer) return;
+
+        // 1. Update Rotation (if filtered)
+        const currentRayAngle = getRayAngle(index, phone.year);
+        if (activeFilterYear && phone.year === activeFilterYear) {
+          rayContainer.style.transform = `rotate(${currentRayAngle}deg)`;
+        } else if (!activeFilterYear) {
+          // Reset to default if filter cleared (though usually handled by render, 
+          // but animate loop is more immediate)
+          const defaultAngle = index * (360 / TARGET_COUNT);
+          rayContainer.style.transform = `rotate(${defaultAngle}deg)`;
+        }
+
+        // 2. Proximity Magnification
+        let scale = 1;
+        let brightness = 0;
+
+        const dxMouse = mouseX - centerX;
+        const dyMouse = mouseY - centerY;
+        const mouseDistFromDialCenter = Math.sqrt(dxMouse * dxMouse + dyMouse * dyMouse);
+        
+        // Only activate if mouse is within the phone axis band
+        const isOnPhoneAxis = mouseDistFromDialCenter > (dialRadius + 20) && mouseDistFromDialCenter < (dialRadius + 350);
+
+        if (isHovering && isOnPhoneAxis && (!activeFilterYear || phone.year === activeFilterYear)) {
+          const totalAngleRad = (dataAngleRef.current + currentRayAngle) * (Math.PI / 180);
+          const distFromCenter = dialRadius + 60 + phone.scatterOffset;
+          
+          // Calculate screen position of the phone
+          const px = centerX - distFromCenter * Math.cos(totalAngleRad);
+          const py = centerY + distFromCenter * Math.sin(totalAngleRad);
+          
+          const dx = mouseX - px;
+          const dy = mouseY - py;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          
+          const effectRadius = 20; // Highly localized effect
+          if (d < effectRadius) {
+            const power = Math.pow(1 - (d / effectRadius), 2); 
+            scale = 1 + power * 1.5; 
+            brightness = power;
+            
+            const pushX = power * 40;
+            el.style.transform = `translateY(-50%) translateX(${pushX}px) scale(${scale})`;
+          } else {
+            el.style.transform = `translateY(-50%) scale(1)`;
+          }
+        } else {
+          el.style.transform = `translateY(-50%) scale(1)`;
+        }
+        
+        // If it's the active phone, we keep its special styles
+        const isActive = activePhone?.id === phone.id;
+        if (!isActive) {
+          if (brightness > 0) {
+            el.style.opacity = String(0.8 + brightness * 0.2);
+            el.style.textShadow = `0 0 ${10 + brightness * 10}px ${BRAND_COLORS[phone.brand]}aa`;
+          } else {
+            el.style.opacity = activeFilterYear 
+              ? (phone.year === activeFilterYear ? '0.8' : '0.05') 
+              : phone.depthOpacity;
+            el.style.textShadow = 'none';
+          }
+        }
+      });
+
+      animationFrameId = requestAnimationFrame(animate);
+    };
+
+    animationFrameId = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [isHovering, isDragging, activeFilterYear, activePhone]);
+
+  // --- Mouse Handlers ---
+  const getMouseAngle = (e: React.MouseEvent | MouseEvent) => {
+    const centerX = window.innerWidth * 1.15;
+    const centerY = window.innerHeight / 2;
+    const x = e.clientX - centerX;
+    const y = e.clientY - centerY;
+    return Math.atan2(y, x) * (180 / Math.PI);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const centerX = window.innerWidth * 1.15;
+    const centerY = window.innerHeight / 2;
+    const dx = e.clientX - centerX;
+    const dy = e.clientY - centerY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    // var(--dial-radius) is roughly 65vw - 120px
+    const dialRadius = (window.innerWidth * 0.65) - 120;
+    
+    // Only allow drag if clicking near the year axis (outer ring)
+    // Hot zone is roughly 100px around the dial radius
+    if (Math.abs(distance - dialRadius) > 100) {
+      return;
+    }
+
+    setIsDragging(true);
+    isDraggingOperationRef.current = false;
+    startMouseAngleRef.current = getMouseAngle(e);
+    lastYearAngleRef.current = yearAngleRef.current;
+    lastDataAngleRef.current = dataAngleRef.current;
+  };
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+
+    const currentMouseAngle = getMouseAngle(e);
+    let deltaAngle = currentMouseAngle - startMouseAngleRef.current;
+
+    if (deltaAngle > 180) deltaAngle -= 360;
+    if (deltaAngle < -180) deltaAngle += 360;
+
+    if (Math.abs(deltaAngle) > 1) {
+      isDraggingOperationRef.current = true;
+    }
+
+    yearAngleRef.current = lastYearAngleRef.current + deltaAngle;
+    dataAngleRef.current = lastDataAngleRef.current + (deltaAngle * 3);
+
+    if (dialLayerRef.current) dialLayerRef.current.style.transform = `rotate(${yearAngleRef.current}deg)`;
+    if (dataLayerRef.current) dataLayerRef.current.style.transform = `rotate(${dataAngleRef.current}deg)`;
+  }, [isDragging]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isDragging) {
+      setIsDragging(false);
+      // Small delay to prevent click events right after drag
+      setTimeout(() => {
+        isDraggingOperationRef.current = false;
+      }, 50);
+    }
+  }, [isDragging]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    } else {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // --- Initial Selection ---
+  useEffect(() => {
+    if (PROCESSED_DATA.length > 0) {
+      setActivePhone(PROCESSED_DATA[0] as any);
+    }
+  }, []);
+
+  const handleYearClick = (year: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDraggingOperationRef.current) return;
+
+    if (activeFilterYear === year) {
+      setActiveFilterYear(null);
+    } else {
+      setActiveFilterYear(year);
+      // Clear active phone if it doesn't match the filtered year
+      if (activePhone && activePhone.year !== year) {
+        setActivePhone(null);
+      }
+    }
+  };
+
+  const handlePhoneClick = (phone: any) => {
+    if (isDraggingOperationRef.current) return;
+    // If filtering is active, only allow clicking models from that year
+    if (activeFilterYear && phone.year !== activeFilterYear) return;
+    setActivePhone(phone);
+  };
+
+  const handlePanelClick = (e: React.MouseEvent) => {
+    if (isDraggingOperationRef.current) return;
+    const target = e.target as HTMLElement;
+    if (target.classList.contains('right-panel') || target.classList.contains('star-trails-layer')) {
+      setActiveFilterYear(null);
+    }
+  };
+
+  // --- Calculate Ray Angles ---
+  const getRayAngle = (index: number, phoneYear: string) => {
+    const defaultAngle = index * (360 / TARGET_COUNT);
+    if (!activeFilterYear) return defaultAngle;
+
+    if (phoneYear === activeFilterYear) {
+      const yearIndex = YEARS.indexOf(activeFilterYear);
+      
+      // To align with the year label across different layer rotations:
+      // AbsoluteYearPos = yearAngle + yearIndex * 45
+      // AbsoluteModelPos = dataAngle + relAngle
+      // We want AbsoluteModelPos = AbsoluteYearPos
+      // relAngle = yearAngle - dataAngle + yearIndex * 45
+      // Since dataAngle = 3 * yearAngle, relAngle = yearIndex * 45 - 2 * yearAngle
+      
+      const baseAngle = yearIndex * 45 - (yearAngleRef.current * 2);
+      
+      // Find matching items to distribute them in the arc (de-duplicated)
+      const itemIndexInMatch = filteredUniqueModels.findIndex(p => p.id === PROCESSED_DATA[index].id);
+      
+      if (itemIndexInMatch !== -1) {
+        const arcWidth = 40; // Sector width
+        const step = arcWidth / Math.max(1, filteredUniqueModels.length - 1);
+        return baseAngle - (arcWidth / 2) + (itemIndexInMatch * step);
+      }
+    }
+    
+    return defaultAngle;
+  };
+
+  return (
+    <div className="flex w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
+      {/* Left Panel */}
+      <div className="w-[40%] h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-10 relative">
+        <AnimatePresence mode="wait">
+          {activePhone && (
+            <motion.div
+              key={activePhone.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+            >
+              <div 
+                className="text-2xl tracking-[6px] mb-[15px] uppercase font-medium"
+                style={{ 
+                  color: BRAND_COLORS[activePhone.brand] || "#ffffff",
+                  textShadow: `0 0 15px ${BRAND_COLORS[activePhone.brand] || "#ffffff"}66`
+                }}
+              >
+                {activePhone.brand}
+              </div>
+              
+              <div 
+                className="text-[64px] font-extralight tracking-[2px] mb-[60px] whitespace-nowrap overflow-hidden text-ellipsis bg-gradient-to-r from-white to-[#555] bg-clip-text text-transparent"
+                title={activePhone.model}
+              >
+                {activePhone.model}
+              </div>
+
+              <div className="grid grid-cols-2 gap-x-[15px] gap-y-[25px] mb-[40px] border-t border-white/5 pt-[40px]">
+                <div className="flex flex-col">
+                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">发布时间</span>
+                  <span className="text-base text-[#ccc] font-light">{activePhone.release_date}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">首销时间</span>
+                  <span className="text-base text-[#ccc] font-light">{activePhone.first_sale_date}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">折叠类型</span>
+                  <span className="text-base text-[#ccc] font-light">{TYPE_TRANSLATION[activePhone.series_type] || activePhone.series_type}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">发售价格</span>
+                  <span className="text-base text-[#ccc] font-light">{activePhone.starting_price} 起</span>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Right Panel */}
+      <div 
+        className="right-panel w-[60%] h-full relative overflow-hidden shadow-[inset_150px_0_150px_-150px_rgba(0,0,0,1)]"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseMove={(e) => {
+          mousePosRef.current = { x: e.clientX, y: e.clientY };
+        }}
+        onMouseLeave={() => {
+          setIsHovering(false);
+          setIsDragging(false);
+        }}
+        onClick={handlePanelClick}
+      >
+        <div className="circle-center absolute -right-[15vw] top-1/2 w-0 h-0 z-[1]">
+          {/* Drag Handle Ring (Strictly limited to year axis: ticks and labels) */}
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10] pointer-events-none"
+            style={{ 
+              width: 'calc(var(--dial-radius) * 2 + 200px)', 
+              height: 'calc(var(--dial-radius) * 2 + 200px)',
+            }}
+          >
+            <svg className="w-full h-full" viewBox="0 0 100 100">
+              <circle 
+                cx="50" cy="50" r="46" 
+                fill="none" 
+                stroke="transparent" 
+                strokeWidth="10" 
+                style={{ pointerEvents: 'stroke' }}
+                className="cursor-grab active:cursor-grabbing"
+                onMouseDown={handleMouseDown}
+              />
+            </svg>
+          </div>
+
+          {/* Dial Layer (Years) */}
+          <div ref={dialLayerRef} className="dial-layer absolute w-full h-full z-[20] pointer-events-none">
+            {Array.from({ length: 360 }).map((_, i) => {
+              const isLong = i % 45 === 0;
+              const isMedium = i % 5 === 0;
+              const yearIndex = i / 45;
+              const year = YEARS[yearIndex];
+
+              return (
+                <div 
+                  key={`tick-${i}`}
+                  className="tick-container absolute right-0 top-0 w-[100vw] h-[2px] -mt-[1px] origin-right pointer-events-none"
+                  style={{ transform: `rotate(${i}deg)` }}
+                >
+                  <div className={`tick-line absolute right-[var(--dial-radius)] h-full ${
+                    isLong ? 'w-[35px] bg-[#777] shadow-[0_0_10px_rgba(255,255,255,0.1)]' : 
+                    isMedium ? 'w-[18px] bg-[#444]' : 
+                    'w-[8px] bg-[#222]'
+                  }`}></div>
+                  
+                  {isLong && yearIndex < YEARS.length && (
+                    <div 
+                      className={`year-label absolute right-[calc(var(--dial-radius)+50px)] -top-[14px] text-[22px] font-extralight tracking-[2px] cursor-pointer transition-all duration-300 hover:text-white hover:scale-110 pointer-events-auto z-[60] ${
+                        activeFilterYear === year ? 'text-white font-bold [text-shadow:0_0_15px_rgba(255,255,255,0.8)]' : 'text-[#666]'
+                      }`}
+                      onClick={(e) => handleYearClick(year, e)}
+                    >
+                      {year}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Data Layer (Phones) */}
+          <div ref={dataLayerRef} className="data-layer absolute w-full h-full z-[30] pointer-events-none">
+            {PROCESSED_DATA.map((phone, index) => {
+              const isDimmed = activeFilterYear && phone.year !== activeFilterYear;
+              const isActiveFilter = activeFilterYear === phone.year;
+              const isDuplicateInFilter = activeFilterYear && isActiveFilter && !uniqueModelIds.has(phone.id);
+              const isActivePhone = activePhone?.id === phone.id;
+              const currentAngle = getRayAngle(index, phone.year);
+
+              return (
+                <div 
+                  key={phone.id}
+                  className={`ray absolute right-0 top-0 w-[100vw] h-[20px] -mt-[10px] origin-right transition-all duration-500 pointer-events-none ${
+                    isDuplicateInFilter ? 'opacity-0' : isDimmed ? 'opacity-[0.05]' : 'opacity-100'
+                  } ${isActiveFilter ? 'ray-active-filter' : ''}`}
+                  style={{ transform: `rotate(${currentAngle}deg)` }}
+                  data-year={phone.year}
+                  data-index={index}
+                >
+                  <div 
+                    ref={el => phoneElementsRef.current[index] = el}
+                    className={`ray-text absolute top-1/2 -translate-y-1/2 text-base cursor-pointer whitespace-nowrap transition-all duration-400 p-[5px] before:content-[''] before:absolute before:-left-[5px] before:top-1/2 before:-translate-y-1/2 before:w-0 before:h-[2px] before:bg-current before:transition-all before:duration-400 hover:opacity-100 hover:text-xl hover:z-[100] ${
+                      (!activeFilterYear || (isActiveFilter && !isDuplicateInFilter)) ? 'pointer-events-auto' : 'pointer-events-none'
+                    } ${
+                      isActivePhone 
+                        ? 'opacity-100 font-bold text-2xl z-[200] before:w-[calc(20px+var(--scatter-offset))] before:-left-[calc(25px+var(--scatter-offset))] before:[box-shadow:0_0_8px_currentColor]' 
+                        : isActiveFilter 
+                          ? 'opacity-80 font-medium z-[150]' 
+                          : 'opacity-[var(--depth-opacity)]'
+                    }`}
+                    style={{ 
+                      left: `calc(var(--data-base-left) + ${phone.scatterOffset}px)`,
+                      color: BRAND_COLORS[phone.brand] || "#ffffff",
+                      // @ts-ignore
+                      '--scatter-offset': `${phone.scatterOffset}px`,
+                      '--depth-opacity': phone.depthOpacity,
+                      textShadow: isActivePhone 
+                        ? `0 0 20px ${BRAND_COLORS[phone.brand]}` 
+                        : isActiveFilter 
+                          ? `0 0 12px ${BRAND_COLORS[phone.brand]}aa` 
+                          : 'none',
+                      willChange: 'transform, opacity'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handlePhoneClick(phone);
+                    }}
+                  >
+                    {phone.brand} {phone.model}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

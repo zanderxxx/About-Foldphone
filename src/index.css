@@ -1,0 +1,43 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  /* 时间轴整体向右平移 120px */
+  --dial-radius: calc(65vw - 120px); 
+  
+  /* 机型轴整体向左再平移 80px */
+  --data-base-left: calc(115vw - var(--dial-radius) - 60px); 
+}
+
+@keyframes spinDial {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinDial 300s linear infinite;
+}
+
+.animate-spin-slow-reverse {
+  animation: spinDial 450s linear infinite reverse;
+}
+
+.animate-spin-medium {
+  animation: spinDial 400s linear infinite;
+}
+
+body {
+  background-color: #020203;
+  color: #ffffff;
+  overflow: hidden;
+}
+
+/* Custom scrollbar if needed, though we use overflow: hidden */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
