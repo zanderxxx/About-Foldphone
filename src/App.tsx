@@ -5,6 +5,8 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ParticleWave } from './components/ParticleWave';
+import { TextTransition } from './components/TextTransition';
 
 // --- Types ---
 interface PhoneData {
@@ -105,8 +107,8 @@ export default function App() {
 
   const displayData = useMemo(() => {
     if (isMobile) {
-      // Keep only 30% of items on mobile for a clean look
-      return PROCESSED_DATA.filter((_, i) => i % 10 < 3);
+      // Further reduce density to 20% (keep 1 item every 5)
+      return PROCESSED_DATA.filter((_, i) => i % 5 === 0);
     }
     return PROCESSED_DATA;
   }, [isMobile]);
@@ -420,32 +422,39 @@ export default function App() {
     <div className="flex flex-col md:flex-row w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
       {/* Phone Info Panel (Top on mobile, Left on desktop) */}
       <div className="w-full h-[40%] md:w-[40%] md:h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_50%_0%,#0d0d14_0%,#020203_70%)] md:bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-50 relative">
+        <ParticleWave 
+          color={activePhone ? BRAND_COLORS[activePhone.brand] : "#ffffff"} 
+          triggerId={activePhone?.id} 
+        />
         <AnimatePresence mode="wait">
           {activePhone && (
-            <motion.div
-              key={activePhone.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-              className="max-w-md mx-auto md:mx-0 text-center md:text-left"
-            >
-              <div 
-                className="text-lg md:text-2xl tracking-[4px] md:tracking-[6px] mb-[5px] md:mb-[15px] uppercase font-medium"
-                style={{ 
-                  color: BRAND_COLORS[activePhone.brand] || "#ffffff",
-                  textShadow: `0 0 15px ${BRAND_COLORS[activePhone.brand] || "#ffffff"}66`
-                }}
+              <motion.div
+                key={activePhone.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+                className="max-w-md mx-auto md:mx-0 text-left"
               >
-                {activePhone.brand}
-              </div>
-              
-              <div 
-                className="text-[32px] md:text-[64px] font-extralight tracking-[1px] md:tracking-[2px] mb-[20px] md:mb-[60px] whitespace-nowrap overflow-hidden text-ellipsis bg-gradient-to-r from-white to-[#555] bg-clip-text text-transparent"
-                title={activePhone.model}
-              >
-                {activePhone.model}
-              </div>
+                <div 
+                  className="text-lg md:text-2xl tracking-[4px] md:tracking-[6px] mb-[5px] md:mb-[15px] uppercase font-medium"
+                  style={{ 
+                    color: BRAND_COLORS[activePhone.brand] || "#ffffff",
+                    textShadow: `0 0 15px ${BRAND_COLORS[activePhone.brand] || "#ffffff"}66`
+                  }}
+                >
+                  {activePhone.brand}
+                </div>
+                
+                <div 
+                  className="mb-[20px] md:mb-[60px]"
+                  title={activePhone.model}
+                >
+                  <TextTransition 
+                    text={activePhone.model} 
+                    className="text-[32px] md:text-[64px] font-extralight tracking-[1px] md:tracking-[2px] leading-tight whitespace-nowrap bg-gradient-to-r from-white to-[#888] bg-clip-text text-transparent"
+                  />
+                </div>
 
               <div className="grid grid-cols-2 gap-x-[10px] md:gap-x-[15px] gap-y-[15px] md:gap-y-[25px] mb-[20px] md:mb-[40px] border-t border-white/5 pt-[20px] md:pt-[40px] justify-items-center md:justify-items-start">
                 <div className="flex flex-col items-center md:items-start">
@@ -597,6 +606,10 @@ export default function App() {
             })}
           </div>
         </div>
+      </div>
+      {/* Footer Signature (PC only) */}
+      <div className="hidden md:block absolute bottom-6 left-10 text-[#555] text-xs tracking-wider z-[100] font-light">
+        © 2026 Jessie. All rights reserved. Designed by Zander.
       </div>
     </div>
   );
