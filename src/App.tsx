@@ -201,15 +201,22 @@ export default function App() {
         }
       });
 
-      // 3. Counter-rotate Year Labels to keep them horizontal
-      yearLabelsRef.current.forEach((el, i) => {
-        if (!el) return;
+    // 3. Year Labels: 
+    const isMobileLayout = window.innerWidth <= 768;
+    yearLabelsRef.current.forEach((el, i) => {
+      if (!el) return;
+      if (isMobileLayout) {
+        // Tangential (perpendicular to ticks) - flipped 180 as requested
+        el.style.transform = `rotate(-90deg)`;
+      } else {
+        // Horizontal on PC
         const tickAngle = i * 45;
         const totalRotation = yearAngleRef.current + tickAngle;
         el.style.transform = `rotate(${-totalRotation}deg)`;
-      });
+      }
+    });
 
-      animationFrameId = requestAnimationFrame(animate);
+    animationFrameId = requestAnimationFrame(animate);
     };
 
     animationFrameId = requestAnimationFrame(animate);
@@ -261,8 +268,8 @@ export default function App() {
       isDraggingOperationRef.current = true;
     }
 
-    yearAngleRef.current = lastYearAngleRef.current - deltaAngle;
-    dataAngleRef.current = lastDataAngleRef.current - (deltaAngle * 3);
+    yearAngleRef.current = lastYearAngleRef.current + deltaAngle;
+    dataAngleRef.current = lastDataAngleRef.current + (deltaAngle * 3);
 
     if (dialLayerRef.current) dialLayerRef.current.style.transform = `rotate(${yearAngleRef.current}deg)`;
     if (dataLayerRef.current) dataLayerRef.current.style.transform = `rotate(${dataAngleRef.current}deg)`;
@@ -362,7 +369,7 @@ export default function App() {
   return (
     <div className="flex flex-col md:flex-row w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
       {/* Phone Info Panel (Top on mobile, Left on desktop) */}
-      <div className="w-full h-[40%] md:w-[40%] md:h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_50%_0%,#0d0d14_0%,#020203_70%)] md:bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-10 relative">
+      <div className="w-full h-[40%] md:w-[40%] md:h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_50%_0%,#0d0d14_0%,#020203_70%)] md:bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-50 relative">
         <AnimatePresence mode="wait">
           {activePhone && (
             <motion.div
@@ -510,9 +517,9 @@ export default function App() {
                       (!activeFilterYear || (isActiveFilter && !isDuplicateInFilter)) ? 'pointer-events-auto' : 'pointer-events-none'
                     } ${
                       isActivePhone 
-                        ? 'opacity-100 font-bold text-2xl z-[200] before:w-[calc(20px+var(--scatter-offset))] before:-left-[calc(25px+var(--scatter-offset))] before:[box-shadow:0_0_8px_currentColor]' 
+                        ? 'opacity-100 font-bold text-2xl z-[200] brightness-125 before:w-[calc(20px+var(--scatter-offset))] before:-left-[calc(25px+var(--scatter-offset))] before:[box-shadow:0_0_8px_currentColor]' 
                         : isActiveFilter 
-                          ? 'opacity-80 font-medium z-[150]' 
+                          ? (activePhone ? 'opacity-30 font-light' : 'opacity-80 font-medium z-[150]') 
                           : 'opacity-[var(--depth-opacity)]'
                     }`}
                     style={{ 
@@ -521,9 +528,7 @@ export default function App() {
                       // @ts-ignore
                       '--scatter-offset': `${phone.scatterOffset}px`,
                       '--depth-opacity': phone.depthOpacity,
-                      textShadow: isActivePhone 
-                        ? `0 0 20px ${BRAND_COLORS[phone.brand]}` 
-                        : isActiveFilter 
+                      textShadow: isActiveFilter && !activePhone
                           ? `0 0 12px ${BRAND_COLORS[phone.brand]}aa` 
                           : 'none',
                       willChange: 'transform, opacity',
