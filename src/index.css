@@ -6,11 +6,20 @@
 }
 
 :root {
-  /* 时间轴整体向右平移 120px */
+  /* Desktop defaults */
   --dial-radius: calc(65vw - 120px); 
-  
-  /* 机型轴整体向左再平移 80px */
-  --data-base-left: calc(115vw - var(--dial-radius) - 60px); 
+  --data-base-left: calc(var(--dial-radius) - 100px); 
+  --circle-center-right: -15vw;
+  --circle-center-top: 50%;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --dial-radius: 80vw;
+    --data-base-left: 10vw;
+    --circle-center-right: 50%;
+    --circle-center-top: 115%;
+  }
 }
 
 @keyframes spinDial {

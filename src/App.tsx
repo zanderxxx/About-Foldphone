@@ -82,6 +82,7 @@ export default function App() {
   const dialLayerRef = useRef<HTMLDivElement>(null);
   const dataLayerRef = useRef<HTMLDivElement>(null);
   const phoneElementsRef = useRef<(HTMLDivElement | null)[]>([]);
+  const yearLabelsRef = useRef<(HTMLDivElement | null)[]>([]);
   const mousePosRef = useRef({ x: 0, y: 0 });
   
   const yearAngleRef = useRef(0);
@@ -200,6 +201,14 @@ export default function App() {
         }
       });
 
+      // 3. Counter-rotate Year Labels to keep them horizontal
+      yearLabelsRef.current.forEach((el, i) => {
+        if (!el) return;
+        const tickAngle = i * 45;
+        const totalRotation = yearAngleRef.current + tickAngle;
+        el.style.transform = `rotate(${-totalRotation}deg)`;
+      });
+
       animationFrameId = requestAnimationFrame(animate);
     };
 
@@ -252,8 +261,8 @@ export default function App() {
       isDraggingOperationRef.current = true;
     }
 
-    yearAngleRef.current = lastYearAngleRef.current + deltaAngle;
-    dataAngleRef.current = lastDataAngleRef.current + (deltaAngle * 3);
+    yearAngleRef.current = lastYearAngleRef.current - deltaAngle;
+    dataAngleRef.current = lastDataAngleRef.current - (deltaAngle * 3);
 
     if (dialLayerRef.current) dialLayerRef.current.style.transform = `rotate(${yearAngleRef.current}deg)`;
     if (dataLayerRef.current) dataLayerRef.current.style.transform = `rotate(${dataAngleRef.current}deg)`;
@@ -351,9 +360,9 @@ export default function App() {
   };
 
   return (
-    <div className="flex w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
-      {/* Left Panel */}
-      <div className="w-[40%] h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-10 relative">
+    <div className="flex flex-col md:flex-row w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
+      {/* Phone Info Panel (Top on mobile, Left on desktop) */}
+      <div className="w-full h-[40%] md:w-[40%] md:h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_50%_0%,#0d0d14_0%,#020203_70%)] md:bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-10 relative">
         <AnimatePresence mode="wait">
           {activePhone && (
             <motion.div
@@ -362,9 +371,10 @@ export default function App() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+              className="max-w-md mx-auto md:mx-0 text-center md:text-left"
             >
               <div 
-                className="text-2xl tracking-[6px] mb-[15px] uppercase font-medium"
+                className="text-lg md:text-2xl tracking-[4px] md:tracking-[6px] mb-[5px] md:mb-[15px] uppercase font-medium"
                 style={{ 
                   color: BRAND_COLORS[activePhone.brand] || "#ffffff",
                   textShadow: `0 0 15px ${BRAND_COLORS[activePhone.brand] || "#ffffff"}66`
@@ -374,28 +384,28 @@ export default function App() {
               </div>
               
               <div 
-                className="text-[64px] font-extralight tracking-[2px] mb-[60px] whitespace-nowrap overflow-hidden text-ellipsis bg-gradient-to-r from-white to-[#555] bg-clip-text text-transparent"
+                className="text-[32px] md:text-[64px] font-extralight tracking-[1px] md:tracking-[2px] mb-[20px] md:mb-[60px] whitespace-nowrap overflow-hidden text-ellipsis bg-gradient-to-r from-white to-[#555] bg-clip-text text-transparent"
                 title={activePhone.model}
               >
                 {activePhone.model}
               </div>
 
-              <div className="grid grid-cols-2 gap-x-[15px] gap-y-[25px] mb-[40px] border-t border-white/5 pt-[40px]">
-                <div className="flex flex-col">
-                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">发布时间</span>
-                  <span className="text-base text-[#ccc] font-light">{activePhone.release_date}</span>
+              <div className="grid grid-cols-2 gap-x-[10px] md:gap-x-[15px] gap-y-[15px] md:gap-y-[25px] mb-[20px] md:mb-[40px] border-t border-white/5 pt-[20px] md:pt-[40px] justify-items-center md:justify-items-start">
+                <div className="flex flex-col items-center md:items-start">
+                  <span className="text-[11px] md:text-[13px] text-[#666] mb-1 md:mb-2 tracking-[1px]">发布时间</span>
+                  <span className="text-sm md:text-base text-[#ccc] font-light">{activePhone.release_date}</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">首销时间</span>
-                  <span className="text-base text-[#ccc] font-light">{activePhone.first_sale_date}</span>
+                <div className="flex flex-col items-center md:items-start">
+                  <span className="text-[11px] md:text-[13px] text-[#666] mb-1 md:mb-2 tracking-[1px]">首销时间</span>
+                  <span className="text-sm md:text-base text-[#ccc] font-light">{activePhone.first_sale_date}</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">折叠类型</span>
-                  <span className="text-base text-[#ccc] font-light">{TYPE_TRANSLATION[activePhone.series_type] || activePhone.series_type}</span>
+                <div className="flex flex-col items-center md:items-start">
+                  <span className="text-[11px] md:text-[13px] text-[#666] mb-1 md:mb-2 tracking-[1px]">折叠类型</span>
+                  <span className="text-sm md:text-base text-[#ccc] font-light">{TYPE_TRANSLATION[activePhone.series_type] || activePhone.series_type}</span>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[13px] text-[#666] mb-2 tracking-[1px]">发售价格</span>
-                  <span className="text-base text-[#ccc] font-light">{activePhone.starting_price} 起</span>
+                <div className="flex flex-col items-center md:items-start">
+                  <span className="text-[11px] md:text-[13px] text-[#666] mb-1 md:mb-2 tracking-[1px]">发售价格</span>
+                  <span className="text-sm md:text-base text-[#ccc] font-light">{activePhone.starting_price} 起</span>
                 </div>
               </div>
             </motion.div>
@@ -403,9 +413,9 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {/* Right Panel */}
+      {/* Dial Panel (Bottom on mobile, Right on desktop) */}
       <div 
-        className="right-panel w-[60%] h-full relative overflow-hidden shadow-[inset_150px_0_150px_-150px_rgba(0,0,0,1)]"
+        className="right-panel w-full h-[60%] md:w-[60%] md:h-full relative overflow-hidden shadow-[inset_0_150px_150px_-150px_rgba(0,0,0,1)] md:shadow-[inset_150px_0_150px_-150px_rgba(0,0,0,1)]"
         onMouseEnter={() => setIsHovering(true)}
         onMouseMove={(e) => {
           mousePosRef.current = { x: e.clientX, y: e.clientY };
@@ -416,7 +426,7 @@ export default function App() {
         }}
         onClick={handlePanelClick}
       >
-        <div className="circle-center absolute -right-[15vw] top-1/2 w-0 h-0 z-[1]">
+        <div className="circle-center absolute right-[var(--circle-center-right)] top-[var(--circle-center-top)] w-0 h-0 z-[1]">
           {/* Drag Handle Ring (Strictly limited to year axis: ticks and labels) */}
           <div 
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[10] pointer-events-none"
@@ -460,9 +470,11 @@ export default function App() {
                   
                   {isLong && yearIndex < YEARS.length && (
                     <div 
+                      ref={el => yearLabelsRef.current[yearIndex] = el}
                       className={`year-label absolute right-[calc(var(--dial-radius)+50px)] -top-[14px] text-[22px] font-extralight tracking-[2px] cursor-pointer transition-all duration-300 hover:text-white hover:scale-110 pointer-events-auto z-[60] ${
                         activeFilterYear === year ? 'text-white font-bold [text-shadow:0_0_15px_rgba(255,255,255,0.8)]' : 'text-[#666]'
                       }`}
+                      style={{ transformOrigin: 'center center' }}
                       onClick={(e) => handleYearClick(year, e)}
                     >
                       {year}
@@ -514,7 +526,8 @@ export default function App() {
                         : isActiveFilter 
                           ? `0 0 12px ${BRAND_COLORS[phone.brand]}aa` 
                           : 'none',
-                      willChange: 'transform, opacity'
+                      willChange: 'transform, opacity',
+                      transformOrigin: 'left center'
                     }}
                     onClick={(e) => {
                       e.stopPropagation();
