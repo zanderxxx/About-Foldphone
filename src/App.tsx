@@ -7,6 +7,10 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'motion/react';
 import { ParticleWave } from './components/ParticleWave';
 import { TextTransition } from './components/TextTransition';
+import { TrendsDashboard } from './components/TrendsDashboard';
+import { ComparePage } from './components/ComparePage';
+// @ts-ignore
+import logoImg from '../logo.png';
 
 // --- Types ---
 interface PhoneData {
@@ -76,6 +80,8 @@ const PROCESSED_DATA = Array.from({ length: TARGET_COUNT }, (_, i) => {
 });
 
 export default function App() {
+  const [activeTab, setActiveTab ] = useState<'home' | 'trends' | 'compare'>('home');
+  const [defaultCompareModel, setDefaultCompareModel] = useState<string | undefined>(undefined);
   const [activePhone, setActivePhone] = useState<PhoneData & { id: string } | null>(null);
   const [activeFilterYear, setActiveFilterYear] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -387,6 +393,11 @@ export default function App() {
     setActivePhone(phone);
   };
 
+  const handleGoToCompare = (model: string) => {
+    setDefaultCompareModel(model);
+    setActiveTab('compare');
+  };
+
   const handlePanelClick = (e: React.MouseEvent) => {
     if (isDraggingOperationRef.current) return;
     const target = e.target as HTMLElement;
@@ -420,7 +431,51 @@ export default function App() {
 
   return (
     <div className="flex flex-col md:flex-row w-screen h-screen bg-[#020203] text-white font-sans overflow-hidden">
-      {/* Phone Info Panel (Top on mobile, Left on desktop) */}
+      {/* Top Navigation */}
+      <nav className="absolute top-0 left-0 w-full z-[100] py-6 px-[6%] flex items-center bg-transparent">
+        {/* Logo */}
+        <div className="flex items-center mr-16 group cursor-pointer" onClick={() => setActiveTab('home')}>
+          <div className="relative flex items-center h-6">
+            <img 
+              src={logoImg} 
+              alt="Logo" 
+              className="h-full w-auto object-contain"
+              referrerPolicy="no-referrer"
+            />
+          </div>
+          <span className="ml-4 text-[14px] font-bold tracking-[0.4em] text-white uppercase pt-0.5 hidden sm:block opacity-90">
+            FoldHub
+          </span>
+        </div>
+
+        <div className="flex space-x-12">
+          {['Home', 'Trends', 'Compare'].map((item) => {
+            const id = item.toLowerCase() as typeof activeTab;
+            return (
+              <button
+                key={item}
+                onClick={() => setActiveTab(id)}
+                className={`text-[10px] md:text-xs uppercase tracking-[0.2em] font-light transition-colors duration-300 ${
+                  activeTab === id ? 'text-white' : 'text-white/40 hover:text-white'
+                }`}
+              >
+                {item}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'home' ? (
+          <motion.div 
+            key="home"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="w-full h-full flex flex-col md:flex-row relative"
+          >
+            {/* Phone Info Panel (Top on mobile, Left on desktop) */}
       <div className="w-full h-[40%] md:w-[40%] md:h-full px-[6%] flex flex-col justify-center bg-[radial-gradient(circle_at_50%_0%,#0d0d14_0%,#020203_70%)] md:bg-[radial-gradient(circle_at_0%_50%,#0d0d14_0%,#020203_70%)] z-50 relative">
         <ParticleWave 
           color={activePhone ? BRAND_COLORS[activePhone.brand] : "#ffffff"} 
@@ -474,6 +529,20 @@ export default function App() {
                   <span className="text-sm md:text-base text-[#ccc] font-light">{activePhone.starting_price} 起</span>
                 </div>
               </div>
+
+              {/* Compare Link for Large Fold */}
+              {activePhone.series_type === 'large_fold' && (
+                <motion.button
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ x: 5 }}
+                  onClick={() => handleGoToCompare(activePhone.model)}
+                  className="flex items-center space-x-2 text-[10px] md:text-xs text-white/40 hover:text-white transition-colors group tracking-[0.2em] uppercase font-light"
+                >
+                  <span>参数对比详情</span>
+                  <motion.span className="text-white/20 group-hover:text-white">→</motion.span>
+                </motion.button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -607,6 +676,14 @@ export default function App() {
           </div>
         </div>
       </div>
+    </motion.div>
+  ) : activeTab === 'trends' ? (
+    <TrendsDashboard key="trends" />
+  ) : (
+    <ComparePage key="compare" defaultModel={defaultCompareModel} />
+  )}
+</AnimatePresence>
+
       {/* Footer Signature (PC only) */}
       <div className="hidden md:block absolute bottom-6 left-10 text-[#555] text-xs tracking-wider z-[100] font-light">
         © 2026 Jessie. All rights reserved. Designed by Zander.
