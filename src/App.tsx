@@ -10,7 +10,7 @@ import { TextTransition } from './components/TextTransition';
 import { TrendsDashboard } from './components/TrendsDashboard';
 import { ComparePage } from './components/ComparePage';
 // @ts-ignore
-import logoImg from '../logo.png';
+import logoImg from './assets/logo.png';
 
 // --- Types ---
 interface PhoneData {
